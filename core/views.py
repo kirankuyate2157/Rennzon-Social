@@ -8,6 +8,7 @@ from itertools import chain
 import random
 
 # Create your views here.
+@login_required(login_url='signin')
 def index(request):
     return render(request, 'index.html')
 
@@ -52,7 +53,7 @@ def signin(request):
 
         user = auth.authenticate(username=username, password=password)
 
-        if user.is_active:
+        if user is not None:  
             auth.login(request, user)
             return redirect('/')
         else:
@@ -61,3 +62,8 @@ def signin(request):
 
     else:
         return render(request, 'signin.html')
+
+def logout(request):
+    auth.logout(request)
+    return redirect('signin')
+
