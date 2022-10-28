@@ -79,7 +79,7 @@ def profile(request, pk):
     return render(request, 'profile.html', context)
 
 
-# @login_required(login_url='signin')
+@login_required(login_url='signin')
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)
 
