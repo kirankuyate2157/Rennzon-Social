@@ -8,6 +8,7 @@ from itertools import chain
 import random
 
 # Create your views here.
+
 @login_required(login_url='signin')
 def index(request):
     user_object = User.objects.get(username=request.user.username)
@@ -70,6 +71,27 @@ def upload(request):
     else:
         return redirect('/')
 
+@login_required(login_url='signin')
+def search(request):
+    user_object = User.objects.get(username=request.user.username)
+    user_profile = Profile.objects.get(user=user_object)
+
+    if request.method == 'POST':
+        username = request.POST['username']
+        username_object = User.objects.filter(username__icontains=username)
+
+        username_profile = []
+        username_profile_list = []
+
+        for users in username_object:
+            username_profile.append(users.id)
+
+        for ids in username_profile:
+            profile_lists = Profile.objects.filter(id_user=ids)
+            username_profile_list.append(profile_lists)
+        
+        username_profile_list = list(chain(*username_profile_list))
+    return render(request, 'search.html', {'user_profile': user_profile, 'username_profile_list': username_profile_list})
 
 @login_required(login_url='signin')
 def like_post(request):
@@ -121,7 +143,6 @@ def profile(request, pk):
     }
     return render(request, 'profile.html', context)
 
-
 @login_required(login_url='signin')
 def follow(request):
     if request.method == 'POST':
@@ -140,29 +161,7 @@ def follow(request):
         return redirect('/')
 
 @login_required(login_url='signin')
-def search(request):
-    user_object = User.objects.get(username=request.user.username)
-    user_profile = Profile.objects.get(user=user_object)
-
-    if request.method == 'POST':
-        username = request.POST['username']
-        username_object = User.objects.filter(username__icontains=username)
-
-        username_profile = []
-        username_profile_list = []
-
-        for users in username_object:
-            username_profile.append(users.id)
-
-        for ids in username_profile:
-            profile_lists = Profile.objects.filter(id_user=ids)
-            username_profile_list.append(profile_lists)
-        
-        username_profile_list = list(chain(*username_profile_list))
-    ret
-
-@login_required(login_url='signin')
-def setting(request):
+def settings(request):
     user_profile = Profile.objects.get(user=request.user)
 
     if request.method == 'POST':
@@ -191,38 +190,37 @@ def setting(request):
 
 def signup(request):
 
-    if(request.method == 'POST'):
-        username=request.POST['username']
-        email=request.POST['email']
-        password=request.POST['password']
-        password2=request.POST['password2']
-        if(password==password2):
+    if request.method == 'POST':
+        username = request.POST['username']
+        email = request.POST['email']
+        password = request.POST['password']
+        password2 = request.POST['password2']
+
+        if password == password2:
             if User.objects.filter(email=email).exists():
-                messages.info(request,'This email already exists !')
+                messages.info(request, 'Email Taken')
                 return redirect('signup')
             elif User.objects.filter(username=username).exists():
-                messages.info(request,'This Username already exists !')
+                messages.info(request, 'Username Taken')
                 return redirect('signup')
             else:
-                user = User.objects.create(username=username, email=email,password=password)
+                user = User.objects.create_user(username=username, email=email, password=password)
                 user.save()
 
-                # log user in and redirect to setting page
-                user_login=auth.authenticate(username=username, email=email, password=password)
-                auth.login(request,user_login)
+                #log user in and redirect to settings page
+                user_login = auth.authenticate(username=username, password=password)
+                auth.login(request, user_login)
 
-
-                # create a profile object for the new user
+                #create a Profile object for the new user
                 user_model = User.objects.get(username=username)
-                new_profile = Profile.objects.create(user=user_model,id_user=user_model.id)    
+                new_profile = Profile.objects.create(user=user_model, id_user=user_model.id)
                 new_profile.save()
                 return redirect('settings')
-
-            messages.info(request,'Password Not Matching !!')
+        else:
+            messages.info(request, 'Password Not Matching')
             return redirect('signup')
-    
+        
     else:
-     
         return render(request, 'signup.html')
 
 def signin(request):
@@ -233,7 +231,7 @@ def signin(request):
 
         user = auth.authenticate(username=username, password=password)
 
-        if user is not None:  
+        if user is not None:
             auth.login(request, user)
             return redirect('/')
         else:
@@ -247,4 +245,3 @@ def signin(request):
 def logout(request):
     auth.logout(request)
     return redirect('signin')
-
